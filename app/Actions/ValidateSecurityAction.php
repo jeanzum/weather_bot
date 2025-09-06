@@ -30,11 +30,24 @@ class ValidateSecurityAction
         '/\\[USER\\]/i',
         '/END\\s+SYSTEM/i',
         '/BEGIN\\s+SYSTEM/i',
+        '/show\\s+me\\s+your\\s+(prompt|instructions?|system)/i',
+        '/what\\s+(is\\s+your|are\\s+your)\\s+(prompt|instructions?)/i',
+        '/reveal\\s+your\\s+(prompt|system|instructions?)/i',
+        '/tell\\s+me\\s+your\\s+(prompt|instructions?|system)/i',
+        '/I\'m\\s+the\\s+(system|administrator)/i',
+        '/This\\s+is\\s+the\\s+system/i',
+        '/```\\s*(system|assistant|user)/i',
+        '/JAILBREAK/i',
+        '/DAN\\s+mode/i',
+        '/developer\\s+mode/i',
     ];
 
     private array $instructionWords = [
         'ignore', 'forget', 'override', 'change', 
-        'pretend', 'act', 'role', 'system'
+        'pretend', 'act', 'role', 'system',
+        'jailbreak', 'bypass', 'hack', 'exploit',
+        'prompt', 'instructions', 'reveal', 'show',
+        'administrator', 'admin', 'developer'
     ];
 
     public function execute(string $message): bool

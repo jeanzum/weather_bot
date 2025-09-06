@@ -83,6 +83,15 @@ const toast = reactive({
   type: 'success'
 })
 
+// User location state
+const userLocation = ref({
+  city: null,
+  latitude: null,
+  longitude: null,
+  isLoading: false,
+  hasPermission: false
+})
+
 // Sidebar methods
 const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
@@ -102,6 +111,49 @@ const showToast = (message, type = 'error') => {
 
 const hideToast = () => {
   toast.show = false
+}
+
+// Location methods
+const getUserLocation = async () => {
+  if (!navigator.geolocation) {
+    return
+  }
+
+  userLocation.value.isLoading = true
+
+  try {
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      })
+    })
+
+    userLocation.value.latitude = position.coords.latitude
+    userLocation.value.longitude = position.coords.longitude
+    userLocation.value.hasPermission = true
+
+    // Try to get city name from coordinates
+    await getCityFromCoordinates(position.coords.latitude, position.coords.longitude)
+    
+  } catch (error) {
+    userLocation.value.hasPermission = false
+  } finally {
+    userLocation.value.isLoading = false
+  }
+}
+
+const getCityFromCoordinates = async (lat, lon) => {
+  try {
+    // Using a simple reverse geocoding service
+    const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`)
+    const data = await response.json()
+    
+    userLocation.value.city = data.city || data.locality || data.principalSubdivision || null
+  } catch (error) {
+    // Silently handle geocoding errors
+  }
 }
 
 // API methods
@@ -144,10 +196,19 @@ const sendMessage = async (messageText) => {
   messages.value.push(userMessage)
 
   try {
-    const { data } = await axios.post('/api/chat', {
+    const payload = {
       message: messageText,
       conversation_id: currentConversation.value?.id
-    })
+    }
+
+    // Include location data if available
+    if (userLocation.value.hasPermission) {
+      if (userLocation.value.city) payload.user_city = userLocation.value.city
+      if (userLocation.value.latitude) payload.user_latitude = userLocation.value.latitude
+      if (userLocation.value.longitude) payload.user_longitude = userLocation.value.longitude
+    }
+
+    const { data } = await axios.post('/api/chat', payload)
 
     if (data.success) {
       // Update conversation if it's new
@@ -243,6 +304,8 @@ const scrollToBottom = () => {
 onMounted(() => {
   initializeDarkMode()
   loadConversations()
+  // Request user location for enhanced experience
+  getUserLocation()
 })
 </script>
 

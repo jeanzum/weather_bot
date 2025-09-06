@@ -29,8 +29,7 @@ Un chatbot meteorológico inteligente desarrollado en Laravel con Vue.js que pro
 
 ### APIs externas
 - OpenAI GPT API para procesamiento de lenguaje natural
-- Open-Meteo API para datos meteorológicos
-- OpenWeatherMap API (opcional)
+- Open-Meteo API para datos meteorológicos (gratuita, sin API key)
 
 ## Requisitos del sistema
 
@@ -76,7 +75,8 @@ DB_PASSWORD=tu_password
 
 # API Keys
 OPENAI_API_KEY=tu_clave_openai
-OPENWEATHER_API_KEY=tu_clave_openweather_opcional
+
+# Open-Meteo API es gratuita y no requiere API key
 ```
 
 ### 4. Crear y configurar la base de datos
@@ -136,14 +136,9 @@ La aplicación estará disponible en `http://localhost:8000`
    OPENAI_API_KEY=sk-...
    ```
 
-### OpenWeatherMap API (Opcional)
+### Open-Meteo API (Configurada automáticamente)
 
-1. Registrarse en [OpenWeatherMap](https://openweathermap.org/api)
-2. Obtener API key gratuita
-3. Añadir al archivo `.env`:
-   ```
-   OPENWEATHER_API_KEY=tu_clave_aqui
-   ```
+Open-Meteo es una API meteorológica gratuita que no requiere registro ni API key.
 
 ## Estructura del proyecto
 
@@ -337,10 +332,16 @@ php artisan storage:link
 php artisan config:clear
 ```
 
-### Error de conexión con OpenAI
+### Error de conexión con APIs externas
+
+**OpenAI API:**
 1. Verificar que la API key sea válida
 2. Comprobar límites de uso en OpenAI dashboard
 3. Verificar conectividad a internet
+
+**Open-Meteo API:**
+1. Verificar conectividad a internet
+2. La API es gratuita y no requiere autenticación
 
 ## Seguridad
 

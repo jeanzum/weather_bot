@@ -40,12 +40,17 @@ class ProcessChatMessageAction
                 $messageWithContext .= "\n\n[ERROR SERVICIO CLIMA]: " . $weatherError;
             }
 
-            $conversationHistory = $this->getConversationHistory($conversation, 10);
+            $conversationHistory = $this->getConversationHistory($conversation, $userMessage, 10);
+            $isFirstMessage = count($conversationHistory) === 0;
 
             $llmResult = $this->llmService->generateResponse(
                 $messageWithContext,
                 $weatherData,
-                $conversationHistory
+                $conversationHistory,
+                $isFirstMessage,
+                $chatMessage->userCity,
+                $chatMessage->userLatitude,
+                $chatMessage->userLongitude
             );
 
             if (!$llmResult['success']) {
@@ -124,9 +129,10 @@ class ProcessChatMessageAction
         }
     }
 
-    private function getConversationHistory(Conversation $conversation, int $limit = 10): array
+    private function getConversationHistory(Conversation $conversation, Message $currentMessage, int $limit = 10): array
     {
         return $conversation->messages()
+            ->where('id', '!=', $currentMessage->id)  // Excluir el mensaje actual
             ->latest()
             ->limit($limit)
             ->get()

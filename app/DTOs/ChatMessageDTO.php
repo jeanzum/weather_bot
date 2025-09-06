@@ -9,7 +9,10 @@ readonly class ChatMessageDTO
         public string $sessionUuid,
         public ?int $conversationId = null,
         public ?WeatherDataDTO $weatherData = null,
-        public array $conversationHistory = []
+        public array $conversationHistory = [],
+        public ?string $userCity = null,
+        public ?float $userLatitude = null,
+        public ?float $userLongitude = null
     ) {}
 
     public function withWeatherData(WeatherDataDTO $weatherData): self
@@ -19,7 +22,10 @@ readonly class ChatMessageDTO
             sessionUuid: $this->sessionUuid,
             conversationId: $this->conversationId,
             weatherData: $weatherData,
-            conversationHistory: $this->conversationHistory
+            conversationHistory: $this->conversationHistory,
+            userCity: $this->userCity,
+            userLatitude: $this->userLatitude,
+            userLongitude: $this->userLongitude
         );
     }
 
@@ -30,7 +36,10 @@ readonly class ChatMessageDTO
             sessionUuid: $this->sessionUuid,
             conversationId: $this->conversationId,
             weatherData: $this->weatherData,
-            conversationHistory: $history
+            conversationHistory: $history,
+            userCity: $this->userCity,
+            userLatitude: $this->userLatitude,
+            userLongitude: $this->userLongitude
         );
     }
 }

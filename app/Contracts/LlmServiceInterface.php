@@ -28,8 +28,9 @@ interface LlmServiceInterface
      * @param string $message
      * @param array|null $weatherData
      * @param array $conversationHistory
+     * @param bool $isFirstMessage
      * @return array
      * @throws \Exception
      */
-    public function generateResponse(string $message, ?array $weatherData, array $conversationHistory): array;
+    public function generateResponse(string $message, ?array $weatherData, array $conversationHistory, bool $isFirstMessage = false): array;
 }

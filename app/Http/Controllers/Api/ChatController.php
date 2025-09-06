@@ -25,7 +25,10 @@ class ChatController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'message' => 'required|string|max:2000',
-            'conversation_id' => 'nullable|exists:conversations,id'
+            'conversation_id' => 'nullable|exists:conversations,id',
+            'user_city' => 'nullable|string|max:100',
+            'user_latitude' => 'nullable|numeric|between:-90,90',
+            'user_longitude' => 'nullable|numeric|between:-180,180'
         ]);
 
         if ($validator->fails()) {
@@ -62,7 +65,10 @@ class ChatController extends Controller
             $chatMessage = new ChatMessageDTO(
                 message: $request->message,
                 conversationId: $conversation->id,
-                sessionUuid: $sessionUuid
+                sessionUuid: $sessionUuid,
+                userCity: $request->input('user_city'),
+                userLatitude: $request->input('user_latitude'),
+                userLongitude: $request->input('user_longitude')
             );
 
             $result = $this->processChatAction->execute($chatMessage);

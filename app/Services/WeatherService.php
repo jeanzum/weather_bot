@@ -10,8 +10,22 @@ use Illuminate\Support\Facades\Log;
 
 class WeatherService implements WeatherServiceInterface
 {
-    private const BASE_URL = 'https://api.open-meteo.com/v1';
-    private const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1';
+    private string $baseUrl;
+    private string $geocodingUrl;
+
+    public function __construct()
+    {
+        $this->baseUrl = config('services.weather.api_url');
+        $this->geocodingUrl = config('services.weather.geocoding_url');
+        
+        if (empty($this->baseUrl)) {
+            throw new \InvalidArgumentException('Weather API URL not configured');
+        }
+        
+        if (empty($this->geocodingUrl)) {
+            throw new \InvalidArgumentException('Weather Geocoding URL not configured');
+        }
+    }
 
     public function getCurrentWeather(string $city): array
     {
@@ -23,7 +37,7 @@ class WeatherService implements WeatherServiceInterface
             }
 
 
-            $response = Http::timeout(10)->get(self::BASE_URL . '/forecast', [
+            $response = Http::timeout(10)->get($this->baseUrl . '/forecast', [
                 'latitude' => $coordinates['lat'],
                 'longitude' => $coordinates['lon'],
                 'current' => 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m',
@@ -82,7 +96,7 @@ class WeatherService implements WeatherServiceInterface
                 throw new \Exception("No se pudo encontrar la ciudad: {$city}");
             }
 
-            $response = Http::get(self::BASE_URL . '/forecast', [
+            $response = Http::get($this->baseUrl . '/forecast', [
                 'latitude' => $coordinates['lat'],
                 'longitude' => $coordinates['lon'],
                 'daily' => 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code',
@@ -122,7 +136,7 @@ class WeatherService implements WeatherServiceInterface
     private function getCoordinates(string $city): ?array
     {
         try {
-            $response = Http::get(self::GEOCODING_URL . '/search', [
+            $response = Http::get($this->geocodingUrl . '/search', [
                 'name' => $city,
                 'count' => 1,
                 'language' => 'es',
