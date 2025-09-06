@@ -1,5 +1,13 @@
 {
     "$schema": "https://json.schemastore.org/package.json",
+    "name": "weather-chatbot",
+    "version": "1.0.0",
+    "description": "Chatbot meteorológico inteligente con Laravel y Vue.js",
+    "author": {
+        "name": "Alejandro Restrepo",
+        "email": "alejorposa@gmail.com",
+        "url": "https://gitlab.com/alejorposa"
+    },
     "private": true,
     "type": "module",
     "scripts": {

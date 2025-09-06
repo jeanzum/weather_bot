@@ -334,6 +334,12 @@ php artisan config:clear
 - CSRF protection habilitado
 - Encriptación de datos sensibles
 
+## Autor
+
+**Alejandro Restrepo**  
+- Email: alejorposa@gmail.com
+- GitLab: https://gitlab.com/alejorposa
+
 ## Licencia
 
 Este proyecto está licenciado bajo la Licencia MIT - ver el archivo LICENSE para más detalles.

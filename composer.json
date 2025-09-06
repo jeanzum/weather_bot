@@ -1,10 +1,18 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "alejorposa/weather-chatbot",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Chatbot meteorológico inteligente desarrollado con Laravel y Vue.js",
+    "keywords": ["laravel", "vue", "chatbot", "weather", "openai", "cli"],
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Alejandro Restrepo",
+            "email": "alejorposa@gmail.com",
+            "homepage": "https://gitlab.com/alejorposa",
+            "role": "Developer"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "laravel/framework": "^12.0",
