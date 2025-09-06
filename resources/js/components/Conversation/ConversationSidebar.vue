@@ -1,14 +1,14 @@
 <template>
   <div class="flex flex-col h-full bg-white dark:bg-gray-900">
     <!-- Simplified Header -->
-    <div class="flex-shrink-0 p-6 border-b border-gray-100 dark:border-gray-800">
+    <div class="flex-shrink-0 p-4 sm:p-6 border-b border-gray-100 dark:border-gray-800">
       <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-            <span class="text-white text-lg">🌤️</span>
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+            <span class="text-white text-base sm:text-lg">🌤️</span>
           </div>
           <div>
-            <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <h1 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
               Weather Bot
             </h1>
           </div>
@@ -17,10 +17,10 @@
         <!-- Simple New Button -->
         <button
           @click="$emit('new-conversation')"
-          class="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center justify-center transition-colors duration-200"
+          class="w-7 h-7 sm:w-8 sm:h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center justify-center transition-colors duration-200"
           title="Nueva conversación"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
           </svg>
         </button>

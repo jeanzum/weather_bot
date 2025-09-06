@@ -30,3 +30,6 @@ build.sh
 .env.vercel
 package-lock.json
 composer.lock
+Procfile
+yarn.lock
+railway.json

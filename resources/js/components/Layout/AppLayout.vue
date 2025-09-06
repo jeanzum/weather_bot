@@ -10,8 +10,26 @@
     <!-- Theme toggle in top right -->
     <ThemeToggle variant="floating" size="medium" />
 
+    <!-- Mobile menu button -->
+    <button 
+      @click="toggleSidebar"
+      class="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-white dark:bg-gray-800 shadow-lg"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+
     <!-- Sidebar -->
-    <div class="w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+    <div 
+      :class="[
+        'bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden',
+        'fixed lg:relative inset-y-0 left-0 z-40',
+        'w-80 lg:w-80',
+        'transform transition-transform duration-300 ease-in-out',
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      ]"
+    >
       <ConversationSidebar 
         :conversations="conversations"
         :current-conversation-id="currentConversation?.id"
@@ -21,8 +39,15 @@
       />
     </div>
 
+    <!-- Overlay for mobile -->
+    <div 
+      v-if="sidebarOpen"
+      @click="closeSidebar"
+      class="lg:hidden fixed inset-0 z-30 bg-black bg-opacity-50"
+    ></div>
+
     <!-- Chat Area -->
-    <div class="flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
+    <div class="flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden lg:ml-0">
       <ChatContainer 
         :current-conversation="currentConversation"
         :messages="messages"
@@ -51,11 +76,21 @@ const conversations = ref([])
 const currentConversation = ref(null)
 const messages = ref([])
 const isLoading = ref(false)
+const sidebarOpen = ref(false)
 const toast = reactive({
   show: false,
   message: '',
   type: 'success'
 })
+
+// Sidebar methods
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value
+}
+
+const closeSidebar = () => {
+  sidebarOpen.value = false
+}
 
 // Toast methods
 const showToast = (message, type = 'error') => {
