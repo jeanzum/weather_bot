@@ -22,3 +22,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+.vercel
+.vercelignore
+vercel.json
+vercel-*.sh
+build.sh
+.env.vercel
+package-lock.json
+composer.lock

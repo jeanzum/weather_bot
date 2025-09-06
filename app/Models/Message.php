@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\MessageRole;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Message extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'conversation_id',
         'session_uuid',
@@ -16,7 +19,8 @@ class Message extends Model
     ];
 
     protected $casts = [
-        'weather_data_used' => 'boolean'
+        'role' => MessageRole::class,
+        'weather_data_used' => 'array'
     ];
 
     public function conversation(): BelongsTo
