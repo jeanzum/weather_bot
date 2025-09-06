@@ -1,34 +1,41 @@
 <template>
-  <div class="flex-1 overflow-y-auto p-4 space-y-4" ref="messagesContainer">
-    <!-- Mensaje de bienvenida -->
-    <div v-if="messages.length === 0" class="text-center py-8 sm:py-12 px-4">
-      <div class="text-5xl sm:text-6xl mb-4">🌦️</div>
-      <h3 class="text-lg sm:text-xl font-medium text-gray-800 mb-2 sm:mb-3">
-        ¡Hola! Soy tu asistente meteorológico
-      </h3>
-      <p class="text-gray-600 text-sm sm:text-base max-w-sm sm:max-w-md mx-auto leading-relaxed">
-        Puedo ayudarte con información del clima, pronósticos del tiempo, 
-        y responder preguntas sobre meteorología. ¿Sobre qué ciudad te gustaría saber?
-      </p>
-    </div>
-
-    <!-- Mensajes del chat -->
-    <MessageBubble
-      v-for="message in messages"
-      :key="message.id"
-      :message="message"
-    />
-
-    <!-- Indicador de escritura -->
-    <div v-if="isLoading" class="flex items-start space-x-2">
-      <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm">
-        🤖
+  <div class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800" ref="messagesContainer">
+    <div class="p-6">
+      <!-- Simple welcome message -->
+      <div v-if="messages.length === 0" class="text-center py-16">
+        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <span class="text-white text-2xl">🌤️</span>
+        </div>
+        
+        <h3 class="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
+          Asistente Meteorológico
+        </h3>
+        
+        <p class="text-gray-600 dark:text-gray-300 max-w-md mx-auto">
+          Pregúntame sobre el clima en cualquier ciudad del mundo
+        </p>
       </div>
-      <div class="bg-gray-100 rounded-lg px-4 py-2 max-w-xs">
-        <div class="flex space-x-1">
-          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]"></div>
-          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+
+      <!-- Chat messages -->
+      <div class="space-y-4">
+        <MessageBubble
+          v-for="message in messages"
+          :key="message.id"
+          :message="message"
+        />
+
+        <!-- Simple typing indicator -->
+        <div v-if="isLoading" class="flex items-start space-x-3">
+          <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+            <span class="text-white text-sm">🤖</span>
+          </div>
+          <div class="bg-white dark:bg-gray-700 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+            <div class="flex space-x-1">
+              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]"></div>
+              <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

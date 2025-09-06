@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-1 flex flex-col">
+  <div class="flex-1 flex flex-col h-full overflow-hidden">
     <ChatHeader 
       :current-conversation="currentConversation"
       :is-loading="isLoading"

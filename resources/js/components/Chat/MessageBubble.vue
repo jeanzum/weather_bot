@@ -1,21 +1,30 @@
 <template>
   <div :class="messageClasses">
-    <div v-if="message.role === 'assistant'" class="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs sm:text-sm">
-      🤖
+    <!-- Assistant Avatar -->
+    <div v-if="message.role === 'assistant'" class="flex-shrink-0">
+      <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+        <span class="text-white text-sm">🤖</span>
+      </div>
     </div>
     
-    <div :class="bubbleClasses">
-      <div class="whitespace-pre-wrap text-sm sm:text-base">{{ message.content }}</div>
-      <div class="text-xs mt-1 opacity-70 flex items-center justify-between">
-        <span>{{ formatTime(message.created_at) }}</span>
-        <span v-if="message.weather_data_used" class="ml-1" title="Datos meteorológicos utilizados">
-          🌤️
-        </span>
+    <!-- Message Content -->
+    <div :class="bubbleWrapperClasses">
+      <div :class="bubbleClasses">
+        <div class="whitespace-pre-wrap leading-relaxed" v-html="formatContent(message.content)" />
+        
+        <!-- Weather indicator if present -->
+        <div v-if="message.weather_data_used" 
+             class="inline-flex items-center space-x-1 mt-2 text-xs opacity-70">
+          <span>🌤️</span>
+        </div>
       </div>
     </div>
 
-    <div v-if="message.role === 'user'" class="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-gray-500 rounded-full flex items-center justify-center text-white text-xs sm:text-sm">
-      👤
+    <!-- User Avatar -->
+    <div v-if="message.role === 'user'" class="flex-shrink-0">
+      <div class="w-8 h-8 bg-gradient-to-br from-gray-500 to-gray-700 dark:from-gray-600 dark:to-gray-800 rounded-lg flex items-center justify-center">
+        <span class="text-white text-sm">👤</span>
+      </div>
     </div>
   </div>
 </template>
@@ -31,24 +40,28 @@ const props = defineProps({
 })
 
 const messageClasses = computed(() => [
-  'flex items-start space-x-2 w-full max-w-full',
+  'flex items-end space-x-3 w-full mb-4',
   props.message.role === 'user' ? 'justify-end' : 'justify-start'
 ])
 
-const bubbleClasses = computed(() => [
-  'rounded-lg px-3 py-2 sm:px-4 sm:py-2 max-w-[85%] sm:max-w-md md:max-w-lg lg:max-w-xl break-words',
-  props.message.role === 'user' 
-    ? 'bg-blue-500 text-white rounded-br-sm' 
-    : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+const bubbleWrapperClasses = computed(() => [
+  'max-w-xs sm:max-w-md lg:max-w-lg xl:max-w-xl',
+  props.message.role === 'user' ? 'ml-12' : 'mr-12'
 ])
 
-const formatTime = (dateString) => {
-  if (!dateString) return ''
-  
-  const date = new Date(dateString)
-  return date.toLocaleTimeString('es-ES', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  })
+const bubbleClasses = computed(() => [
+  'rounded-2xl px-4 py-3 shadow-sm transition-all duration-200',
+  props.message.role === 'user' 
+    ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-br-sm' 
+    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-bl-sm'
+])
+
+const formatContent = (content) => {
+  // Basic formatting for better readability
+  return content
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code class="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-sm">$1</code>')
 }
 </script>

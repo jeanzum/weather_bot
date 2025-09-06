@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col sm:flex-row h-screen bg-gray-100">
+  <div class="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
     <ToastNotification 
       :show="toast.show"
       :message="toast.message"
@@ -7,29 +7,44 @@
       @close="hideToast"
     />
 
-    <ConversationSidebar 
-      :conversations="conversations"
-      :current-conversation-id="currentConversation?.id"
-      @new-conversation="startNewConversation"
-      @conversation-selected="selectConversation"
-    />
+    <!-- Theme toggle in top right -->
+    <ThemeToggle variant="floating" size="medium" />
 
-    <ChatContainer 
-      :current-conversation="currentConversation"
-      :messages="messages"
-      :is-loading="isLoading"
-      @delete-conversation="deleteCurrentConversation"
-      @send-message="sendMessage"
-    />
+    <!-- Sidebar -->
+    <div class="w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+      <ConversationSidebar 
+        :conversations="conversations"
+        :current-conversation-id="currentConversation?.id"
+        @new-conversation="startNewConversation"
+        @conversation-selected="selectConversation"
+        @delete-conversation="deleteConversation"
+      />
+    </div>
+
+    <!-- Chat Area -->
+    <div class="flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
+      <ChatContainer 
+        :current-conversation="currentConversation"
+        :messages="messages"
+        :is-loading="isLoading"
+        @delete-conversation="deleteCurrentConversation"
+        @send-message="sendMessage"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import axios from 'axios'
+import { useDarkMode } from '../../composables/useDarkMode.js'
 import ToastNotification from '../UI/ToastNotification.vue'
+import ThemeToggle from '../Common/ThemeToggle.vue'
 import ConversationSidebar from '../Conversation/ConversationSidebar.vue'
 import ChatContainer from '../Chat/ChatContainer.vue'
+
+// Dark mode
+const { initializeDarkMode } = useDarkMode()
 
 // State
 const conversations = ref([])
@@ -134,6 +149,24 @@ const sendMessage = async (messageText) => {
   }
 }
 
+const deleteConversation = async (conversationId) => {
+  try {
+    const { data } = await axios.delete(`/api/conversations/${conversationId}`)
+
+    if (data.success) {
+      // If it's the current conversation, clear it
+      if (currentConversation.value?.id === conversationId) {
+        currentConversation.value = null
+        messages.value = []
+      }
+      await loadConversations()
+      showToast('Conversación eliminada', 'success')
+    }
+  } catch (err) {
+    showToast('Error al eliminar la conversación')
+  }
+}
+
 const deleteCurrentConversation = async () => {
   if (!currentConversation.value) return
 
@@ -173,6 +206,7 @@ const scrollToBottom = () => {
 
 // Initialize
 onMounted(() => {
+  initializeDarkMode()
   loadConversations()
 })
 </script>
