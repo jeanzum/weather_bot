@@ -1,0 +1,385 @@
+<template>
+  <div class="flex h-screen bg-gray-100">
+    <!-- Toast Container -->
+    <div 
+      v-if="toast.show" 
+      :class="[
+        'fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transform transition-all duration-300',
+        toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+      ]"
+    >
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <span class="mr-2">
+            {{ toast.type === 'error' ? '⚠️' : '✅' }}
+          </span>
+          <span class="text-sm font-medium">{{ toast.message }}</span>
+        </div>
+        <button @click="hideToast" class="ml-2 text-white hover:text-gray-200">
+          ×
+        </button>
+      </div>
+    </div>
+
+    <!-- Sidebar de Conversaciones -->
+    <div class="w-1/3 bg-white border-r border-gray-200 flex flex-col">
+      <!-- Header del Sidebar -->
+      <div class="p-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h1 class="text-xl font-semibold text-gray-800">
+            🌤️ Weather Chat
+          </h1>
+          <button @click="startNewConversation" class="btn-secondary text-sm">
+            Nueva
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista de Conversaciones -->
+      <div class="flex-1 overflow-y-auto">
+        <div v-if="conversations.length === 0" class="p-4 text-center text-gray-500">
+          No hay conversaciones aún.
+          <br>¡Empieza una nueva!
+        </div>
+        
+        <div 
+          v-for="conversation in conversations" 
+          :key="conversation.id"
+          @click="selectConversation(conversation)"
+          :class="['conversation-item', { 'active': currentConversation?.id === conversation.id }]"
+        >
+          <div class="font-medium text-sm text-gray-800 mb-1 truncate">
+            {{ conversation.title || 'Nueva conversación' }}
+          </div>
+          <div class="text-xs text-gray-500 truncate">
+            {{ conversation.last_message }}
+          </div>
+          <div class="text-xs text-gray-400 mt-1">
+            {{ formatDate(conversation.last_message_at) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Principal -->
+    <div class="flex-1 flex flex-col">
+      <!-- Header del Chat -->
+      <div class="p-4 bg-white border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-medium text-gray-800">
+            {{ currentConversation?.title || 'Asistente Meteorológico' }}
+          </h2>
+          <div class="flex items-center space-x-2">
+            <span v-if="isLoading" class="text-sm text-blue-500">
+              🤖 Escribiendo...
+            </span>
+            <button 
+              v-if="currentConversation"
+              @click="deleteCurrentConversation"
+              class="text-red-500 hover:text-red-700 text-sm"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mensajes -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4" ref="messagesContainer">
+        <!-- Mensaje de bienvenida -->
+        <div v-if="messages.length === 0" class="text-center py-12">
+          <div class="text-6xl mb-4">🌦️</div>
+          <h3 class="text-lg font-medium text-gray-800 mb-2">
+            ¡Hola! Soy tu asistente meteorológico
+          </h3>
+          <p class="text-gray-600 max-w-md mx-auto">
+            Puedo ayudarte con información del clima, pronósticos del tiempo, 
+            y responder preguntas sobre meteorología. ¿Sobre qué ciudad te gustaría saber?
+          </p>
+        </div>
+
+        <!-- Mensajes de la conversación -->
+        <div 
+          v-for="message in messages" 
+          :key="message.id"
+          :class="['flex', message.role === 'user' ? 'justify-end' : 'justify-start']"
+        >
+          <div 
+            :class="[
+              'message-bubble',
+              message.role === 'user' ? 'message-user' : 'message-bot',
+              'animate-slide-up'
+            ]"
+          >
+            <div class="whitespace-pre-wrap">{{ message.content }}</div>
+            <div class="text-xs opacity-70 mt-1">
+              {{ formatTime(message.created_at) }}
+              <span v-if="message.weather_data_used" class="ml-1">🌡️</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div v-if="isLoading" class="flex justify-start">
+          <div class="message-bubble message-bot">
+            <div class="flex items-center space-x-2">
+              <div class="animate-pulse">🤖</div>
+              <div class="text-gray-500">Escribiendo...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input de Mensaje -->
+      <div class="p-4 bg-white border-t border-gray-200">
+        <form @submit.prevent="sendMessage" class="flex space-x-3">
+          <textarea
+            v-model="newMessage"
+            placeholder="Escribe tu pregunta sobre el clima..."
+            class="chat-input"
+            rows="1"
+            :disabled="isLoading"
+            @keydown.enter.exact.prevent="sendMessage"
+            @keydown.enter.shift.exact="newMessage += '\n'"
+            ref="messageInput"
+          ></textarea>
+          <button
+            type="submit"
+            :disabled="!newMessage.trim() || isLoading"
+            class="btn-primary"
+          >
+            {{ isLoading ? '⏳' : '📤' }}
+          </button>
+        </form>
+        
+        <!-- Error message -->
+        <div v-if="error" class="mt-2 text-red-600 text-sm">
+          {{ error }}
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { ref, reactive, onMounted, nextTick } from 'vue';
+
+export default {
+  name: 'WeatherChatApp',
+  setup() {
+    // Estado reactivo
+    const conversations = ref([]);
+    const currentConversation = ref(null);
+    const messages = ref([]);
+    const newMessage = ref('');
+    const isLoading = ref(false);
+    const error = ref('');
+    const messagesContainer = ref(null);
+    const messageInput = ref(null);
+    const toast = ref({
+      show: false,
+      message: '',
+      type: 'error' // 'error' or 'success'
+    });
+
+    // ID de usuario (en un caso real, vendría de autenticación)
+    const userId = 1;
+
+    // API Base URL
+    const apiBaseUrl = '/api/v1';
+
+    // Métodos
+    const loadConversations = async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/chat/conversations?user_id=${userId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          conversations.value = data.data;
+        }
+      } catch (err) {
+      }
+    };
+
+    const loadConversation = async (conversationId) => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/chat/conversations/${conversationId}?user_id=${userId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          messages.value = data.data.messages;
+          scrollToBottom();
+        }
+      } catch (err) {
+        error.value = 'Error al cargar la conversación';
+      }
+    };
+
+    const sendMessage = async () => {
+      if (!newMessage.value.trim() || isLoading.value) return;
+
+      const messageText = newMessage.value.trim();
+      newMessage.value = '';
+      isLoading.value = true;
+      error.value = '';
+
+      try {
+        const response = await fetch(`${apiBaseUrl}/chat/message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+          },
+          body: JSON.stringify({
+            message: messageText,
+            conversation_id: currentConversation.value?.id,
+            user_id: userId
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Actualizar conversación actual si es nueva
+          if (!currentConversation.value) {
+            currentConversation.value = { id: data.data.conversation_id };
+            await loadConversations();
+          }
+
+          // Añadir mensajes a la vista
+          messages.value.push(data.data.user_message);
+          messages.value.push(data.data.assistant_message);
+
+          await scrollToBottom();
+          await loadConversations(); // Actualizar lista de conversaciones
+        } else {
+          // Manejar errores específicos del LLM
+          if (data.error_type === 'llm_error') {
+            showToast(data.message, 'error');
+          } else {
+            error.value = data.message || 'Error al enviar el mensaje';
+          }
+        }
+      } catch (err) {
+        error.value = 'Error de conexión. Por favor intenta nuevamente.';
+      } finally {
+        isLoading.value = false;
+        await nextTick();
+        messageInput.value?.focus();
+      }
+    };
+
+    const selectConversation = async (conversation) => {
+      currentConversation.value = conversation;
+      await loadConversation(conversation.id);
+    };
+
+    const startNewConversation = () => {
+      currentConversation.value = null;
+      messages.value = [];
+      messageInput.value?.focus();
+    };
+
+    const deleteCurrentConversation = async () => {
+      if (!currentConversation.value || !confirm('¿Estás seguro de que quieres eliminar esta conversación?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${apiBaseUrl}/chat/conversations/${currentConversation.value.id}?user_id=${userId}`, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          await loadConversations();
+          startNewConversation();
+        } else {
+          error.value = 'Error al eliminar la conversación';
+        }
+      } catch (err) {
+        error.value = 'Error al eliminar la conversación';
+      }
+    };
+
+    const scrollToBottom = async () => {
+      await nextTick();
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+      }
+    };
+
+    const formatDate = (dateString) => {
+      if (!dateString) return '';
+      
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffTime = Math.abs(now - date);
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      } else if (diffDays === 1) {
+        return 'Ayer';
+      } else if (diffDays < 7) {
+        return `${diffDays} días`;
+      } else {
+        return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+      }
+    };
+
+    const formatTime = (dateString) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const showToast = (message, type = 'error') => {
+      toast.value = {
+        show: true,
+        message,
+        type
+      };
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        hideToast();
+      }, 5000);
+    };
+
+    const hideToast = () => {
+      toast.value.show = false;
+    };
+
+    // Lifecycle
+    onMounted(async () => {
+      await loadConversations();
+      messageInput.value?.focus();
+    });
+
+    return {
+      conversations,
+      currentConversation,
+      messages,
+      newMessage,
+      isLoading,
+      error,
+      messagesContainer,
+      messageInput,
+      toast,
+      sendMessage,
+      selectConversation,
+      startNewConversation,
+      deleteCurrentConversation,
+      formatDate,
+      formatTime,
+      showToast,
+      hideToast
+    };
+  }
+};
+</script>
