@@ -1,12 +1,12 @@
 <template>
   <div class="flex-1 overflow-y-auto p-4 space-y-4" ref="messagesContainer">
     <!-- Mensaje de bienvenida -->
-    <div v-if="messages.length === 0" class="text-center py-12">
-      <div class="text-6xl mb-4">🌦️</div>
-      <h3 class="text-lg font-medium text-gray-800 mb-2">
+    <div v-if="messages.length === 0" class="text-center py-8 sm:py-12 px-4">
+      <div class="text-5xl sm:text-6xl mb-4">🌦️</div>
+      <h3 class="text-lg sm:text-xl font-medium text-gray-800 mb-2 sm:mb-3">
         ¡Hola! Soy tu asistente meteorológico
       </h3>
-      <p class="text-gray-600 max-w-md mx-auto">
+      <p class="text-gray-600 text-sm sm:text-base max-w-sm sm:max-w-md mx-auto leading-relaxed">
         Puedo ayudarte con información del clima, pronósticos del tiempo, 
         y responder preguntas sobre meteorología. ¿Sobre qué ciudad te gustaría saber?
       </p>
@@ -27,8 +27,8 @@
       <div class="bg-gray-100 rounded-lg px-4 py-2 max-w-xs">
         <div class="flex space-x-1">
           <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]"></div>
+          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
         </div>
       </div>
     </div>

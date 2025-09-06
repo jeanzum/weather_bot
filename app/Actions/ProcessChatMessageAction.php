@@ -5,11 +5,8 @@ namespace App\Actions;
 use App\Contracts\LlmServiceInterface;
 use App\Contracts\WeatherServiceInterface;
 use App\DTOs\ChatMessageDTO;
-use App\DTOs\WeatherDataDTO;
-use App\Enums\MessageRole;
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -23,14 +20,13 @@ class ProcessChatMessageAction
     public function execute(ChatMessageDTO $chatMessage): array
     {
         return DB::transaction(function () use ($chatMessage) {
-            $user = User::findOrFail($chatMessage->userId);
-            $conversation = $this->getOrCreateConversation($chatMessage, $user);
+            $conversation = $this->getOrCreateConversation($chatMessage);
 
             $userMessage = Message::create([
                 'conversation_id' => $conversation->id,
-                'user_id' => $user->id,
+                'session_uuid' => $chatMessage->sessionUuid,
                 'content' => $chatMessage->message,
-                'role' => MessageRole::USER->value
+                'role' => 'user'
             ]);
 
             $weatherData = null;
@@ -56,23 +52,15 @@ class ProcessChatMessageAction
                 throw new \Exception($llmResult['error']);
             }
 
-            $metadata = [];
-            if ($weatherData) {
-                $metadata['weather_data_used'] = true;
-            }
-            if ($weatherError) {
-                $metadata['weather_error'] = $weatherError;
-            }
-
             $assistantMessage = Message::create([
                 'conversation_id' => $conversation->id,
-                'user_id' => $user->id,
+                'session_uuid' => $chatMessage->sessionUuid,
                 'content' => $llmResult['response'],
-                'role' => MessageRole::ASSISTANT->value,
-                'metadata' => !empty($metadata) ? $metadata : null
+                'role' => 'assistant',
+                'weather_data_used' => $weatherData !== null
             ]);
 
-            $conversation->updateLastMessage();
+            $conversation->updateLastMessage($llmResult['response']);
 
             if (!$conversation->title) {
                 $conversation->update([
@@ -99,17 +87,18 @@ class ProcessChatMessageAction
         });
     }
 
-    private function getOrCreateConversation(ChatMessageDTO $chatMessage, User $user): Conversation
+    private function getOrCreateConversation(ChatMessageDTO $chatMessage): Conversation
     {
         if ($chatMessage->conversationId) {
             return Conversation::where('id', $chatMessage->conversationId)
-                ->where('user_id', $user->id)
+                ->where('session_uuid', $chatMessage->sessionUuid)
                 ->firstOrFail();
         }
 
         return Conversation::create([
-            'user_id' => $user->id,
+            'session_uuid' => $chatMessage->sessionUuid,
             'title' => null,
+            'last_message' => null,
             'last_message_at' => now()
         ]);
     }

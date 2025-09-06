@@ -6,26 +6,17 @@ readonly class ChatMessageDTO
 {
     public function __construct(
         public string $message,
-        public int $userId,
+        public string $sessionUuid,
         public ?int $conversationId = null,
         public ?WeatherDataDTO $weatherData = null,
         public array $conversationHistory = []
     ) {}
 
-    public static function fromRequest(array $data): self
-    {
-        return new self(
-            message: $data['message'],
-            userId: $data['user_id'],
-            conversationId: $data['conversation_id'] ?? null
-        );
-    }
-
     public function withWeatherData(WeatherDataDTO $weatherData): self
     {
         return new self(
             message: $this->message,
-            userId: $this->userId,
+            sessionUuid: $this->sessionUuid,
             conversationId: $this->conversationId,
             weatherData: $weatherData,
             conversationHistory: $this->conversationHistory
@@ -36,7 +27,7 @@ readonly class ChatMessageDTO
     {
         return new self(
             message: $this->message,
-            userId: $this->userId,
+            sessionUuid: $this->sessionUuid,
             conversationId: $this->conversationId,
             weatherData: $this->weatherData,
             conversationHistory: $history

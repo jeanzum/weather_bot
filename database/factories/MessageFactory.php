@@ -3,8 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Conversation;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 class MessageFactory extends Factory
 {
@@ -12,10 +12,10 @@ class MessageFactory extends Factory
     {
         return [
             'conversation_id' => Conversation::factory(),
-            'user_id' => User::factory(),
+            'session_uuid' => Str::uuid()->toString(),
             'content' => $this->faker->paragraph(),
             'role' => $this->faker->randomElement(['user', 'assistant']),
-            'metadata' => null,
+            'weather_data_used' => $this->faker->boolean(),
         ];
     }
 
@@ -24,6 +24,7 @@ class MessageFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'role' => 'user',
             'content' => $this->faker->sentence(),
+            'weather_data_used' => false,
         ]);
     }
 
@@ -32,7 +33,7 @@ class MessageFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'role' => 'assistant',
             'content' => $this->faker->paragraph(),
-            'metadata' => ['weather_data_used' => $this->faker->boolean()],
+            'weather_data_used' => $this->faker->boolean(),
         ]);
     }
 }

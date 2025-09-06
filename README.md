@@ -149,15 +149,29 @@ La aplicación estará disponible en `http://localhost:8000`
 
 ```
 ├── app/
-│   ├── Http/Controllers/Api/
-│   │   └── ChatController.php          # Controlador principal de chat
+│   ├── Actions/
+│   │   ├── ProcessChatMessageAction.php # Lógica de procesamiento de mensajes
+│   │   └── ValidateSecurityAction.php   # Validación de seguridad
+│   ├── Contracts/
+│   │   ├── LlmServiceInterface.php      # Interfaz del servicio LLM
+│   │   └── WeatherServiceInterface.php  # Interfaz del servicio meteorológico
+│   ├── DTOs/
+│   │   ├── ChatMessageDTO.php           # DTO para mensajes de chat
+│   │   └── WeatherDataDTO.php           # DTO para datos meteorológicos
+│   ├── Enums/
+│   │   ├── MessageRole.php              # Enum para roles de mensajes
+│   │   └── WeatherErrorCode.php         # Enum para códigos de error meteorológicos
+│   ├── Http/
+│   │   ├── Controllers/Api/
+│   │   │   └── ChatController.php       # Controlador principal de chat
+│   │   └── Middleware/
+│   │       └── EnsureSessionUuid.php    # Middleware para gestión de sesiones UUID
 │   ├── Models/
-│   │   ├── User.php                    # Modelo de usuario
-│   │   ├── Conversation.php            # Modelo de conversación
-│   │   └── Message.php                 # Modelo de mensajes
+│   │   ├── Conversation.php             # Modelo de conversación (session-based)
+│   │   └── Message.php                  # Modelo de mensajes (session-based)
 │   └── Services/
-│       ├── LlmService.php              # Servicio para OpenAI
-│       └── WeatherService.php          # Servicio meteorológico
+│       ├── LlmService.php               # Servicio para OpenAI
+│       └── WeatherService.php           # Servicio meteorológico
 ├── database/
 │   └── migrations/                     # Migraciones de base de datos
 ├── resources/
@@ -188,19 +202,19 @@ La aplicación estará disponible en `http://localhost:8000`
 
 | Método | Endpoint | Descripción | Parámetros |
 |--------|----------|-------------|------------|
-| POST | `/api/v1/chat/message` | Enviar mensaje al chatbot | `message`, `user_id`, `conversation_id?` |
-| GET | `/api/v1/chat/conversations` | Obtener conversaciones | `user_id` |
-| GET | `/api/v1/chat/conversations/{id}` | Obtener conversación específica | `user_id` |
-| DELETE | `/api/v1/chat/conversations/{id}` | Eliminar conversación | `user_id` |
+| POST | `/api/v1/chat/message` | Enviar mensaje al chatbot | `message`, `session_uuid`, `conversation_id?` |
+| GET | `/api/v1/chat/conversations` | Obtener conversaciones | `session_uuid` |
+| GET | `/api/v1/chat/conversations/{id}` | Obtener conversación específica | `session_uuid` |
+| DELETE | `/api/v1/chat/conversations/{id}` | Eliminar conversación | `session_uuid` |
 
 ### Ejemplo de uso de la API
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/chat/message \
   -H "Content-Type: application/json" \
+  -H "X-Chat-Session-UUID: 123e4567-e89b-12d3-a456-426614174000" \
   -d '{
-    "message": "¿Cómo está el clima en Madrid?",
-    "user_id": 1
+    "message": "¿Cómo está el clima en Madrid?"
   }'
 ```
 
@@ -234,14 +248,16 @@ Clima en ☔ Berlín (mañana):
 
 ### Tablas principales
 
-**users**
-- id, name, email, password, timestamps
-
 **conversations**
-- id, user_id, title, last_message, last_message_at, timestamps
+- id, session_uuid, title, last_message, last_message_at, timestamps
 
 **messages**
-- id, conversation_id, user_id, content, role (user/assistant), weather_data_used, timestamps
+- id, conversation_id, session_uuid, content, role (user/assistant), weather_data_used, timestamps
+
+**Notas sobre la arquitectura:**
+- El sistema utiliza `session_uuid` en lugar de autenticación tradicional de usuarios
+- Cada sesión de chat es identificada por un UUID único generado automáticamente
+- No requiere registro ni login, proporcionando una experiencia completamente anónima
 
 ## Testing
 

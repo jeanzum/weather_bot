@@ -2,7 +2,7 @@
   <div 
     @click="$emit('select')"
     :class="[
-      'conversation-item cursor-pointer p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors',
+      'cursor-pointer p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors',
       { 'bg-blue-50 border-blue-200': isActive }
     ]"
   >

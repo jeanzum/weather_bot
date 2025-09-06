@@ -1,18 +1,18 @@
 <template>
-  <div class="p-4 bg-white border-t border-gray-200">
+  <div class="p-3 sm:p-4 bg-white border-t border-gray-200">
     <form @submit.prevent="handleSubmit" class="flex space-x-2">
       <input
         v-model="message"
         type="text"
         placeholder="Escribe tu pregunta sobre el clima..."
         :disabled="isLoading"
-        class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
         @keydown.enter.prevent="handleSubmit"
       />
       <button
         type="submit"
         :disabled="!message.trim() || isLoading"
-        class="btn-primary px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 px-4 py-2 sm:px-6 sm:py-2 text-sm sm:text-base whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <span v-if="!isLoading">Enviar</span>
         <span v-else class="flex items-center">

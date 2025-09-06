@@ -1,12 +1,12 @@
 <template>
-  <div class="w-1/3 bg-white border-r border-gray-200 flex flex-col">
+  <div class="w-full sm:w-80 md:w-1/3 bg-white border-r border-gray-200 flex flex-col">
     <!-- Header del Sidebar -->
-    <div class="p-4 border-b border-gray-200">
+    <div class="p-3 sm:p-4 border-b border-gray-200">
       <div class="flex items-center justify-between">
-        <h1 class="text-xl font-semibold text-gray-800">
+        <h1 class="text-lg sm:text-xl font-semibold text-gray-800 truncate">
           🌤️ Weather Chat
         </h1>
-        <button @click="$emit('new-conversation')" class="btn-secondary text-sm">
+        <button @click="$emit('new-conversation')" class="bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors px-2 py-1 sm:px-3 sm:py-1 text-xs sm:text-sm flex-shrink-0">
           Nueva
         </button>
       </div>

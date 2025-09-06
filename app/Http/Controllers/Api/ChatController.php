@@ -5,17 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Actions\ProcessChatMessageAction;
 use App\Actions\ValidateSecurityAction;
 use App\DTOs\ChatMessageDTO;
-use App\Enums\WeatherErrorCode;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\GetConversationsRequest;
-use App\Http\Requests\SendMessageRequest;
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class ChatController extends Controller
 {
@@ -24,13 +21,26 @@ class ChatController extends Controller
         private ValidateSecurityAction $validateSecurityAction
     ) {}
 
-    public function sendMessage(SendMessageRequest $request): JsonResponse
+    public function sendMessage(Request $request): JsonResponse
     {
+        $validator = Validator::make($request->all(), [
+            'message' => 'required|string|max:2000',
+            'conversation_id' => 'nullable|exists:conversations,id'
+        ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos de entrada inválidos',
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        // Security validation
         if ($this->validateSecurityAction->execute($request->message)) {
-            Log::warning('🛡️ Security: Suspicious patterns detected in user message', [
-                'user_id' => $request->user_id,
-                'message' => substr($request->message, 0, 100) . '...'
+            Log::warning('Security: Suspicious patterns detected', [
+                'session_uuid' => $request->session_uuid,
+                'message_preview' => substr($request->message, 0, 100) . '...'
             ]);
             
             return response()->json([
@@ -41,8 +51,23 @@ class ChatController extends Controller
         }
 
         try {
-            $chatMessage = ChatMessageDTO::fromRequest($request->validated());
+            DB::beginTransaction();
+
+            $sessionUuid = $request->session_uuid;
+            
+            // Get or create conversation
+            $conversation = $this->getOrCreateConversation($request->conversation_id, $sessionUuid);
+
+            // Create DTO and process message
+            $chatMessage = new ChatMessageDTO(
+                message: $request->message,
+                conversationId: $conversation->id,
+                sessionUuid: $sessionUuid
+            );
+
             $result = $this->processChatAction->execute($chatMessage);
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -50,39 +75,37 @@ class ChatController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
+            
             Log::error('Chat error: ' . $e->getMessage(), [
-                'user_id' => $request->user_id,
+                'session_uuid' => $request->session_uuid,
                 'message' => $request->message
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Error interno del servidor. Por favor intenta nuevamente.'
+                'message' => 'Error interno del servidor. Por favor intenta nuevamente.',
+                'error_type' => 'llm_error'
             ], 500);
         }
     }
 
-    public function getConversations(GetConversationsRequest $request): JsonResponse
+    public function getConversations(Request $request): JsonResponse
     {
-
         try {
-            $user = User::findOrFail($request->user_id);
+            $sessionUuid = $request->session_uuid;
             $limit = $request->input('limit', 20);
 
-            $conversations = $user->conversations()
-                ->with(['messages' => function ($query) {
-                    $query->latest()->limit(1);
-                }])
+            $conversations = Conversation::forSession($sessionUuid)
                 ->latest('last_message_at')
                 ->limit($limit)
                 ->get()
                 ->map(function ($conversation) {
                     return [
                         'id' => $conversation->id,
-                        'title' => $conversation->title,
+                        'title' => $conversation->title ?: 'Nueva conversación',
                         'last_message_at' => $conversation->last_message_at,
-                        'last_message' => $conversation->messages->first()?->content ?? 'Sin mensajes',
-                        'messages_count' => $conversation->messages()->count()
+                        'last_message' => $conversation->last_message ?: 'Sin mensajes',
                     ];
                 });
 
@@ -102,30 +125,30 @@ class ChatController extends Controller
 
     public function getConversation(Request $request, int $conversationId): JsonResponse
     {
-        $validator = Validator::make(array_merge($request->all(), ['conversation_id' => $conversationId]), [
-            'user_id' => 'required|exists:users,id',
+        $validator = Validator::make(['conversation_id' => $conversationId], [
             'conversation_id' => 'required|exists:conversations,id'
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Datos de entrada inválidos',
-                'errors' => $validator->errors()
-            ], 400);
+                'message' => 'Conversación no encontrada'
+            ], 404);
         }
 
         try {
+            $sessionUuid = $request->session_uuid;
+            
             $conversation = Conversation::with('messages')
                 ->where('id', $conversationId)
-                ->where('user_id', $request->user_id)
+                ->where('session_uuid', $sessionUuid)
                 ->firstOrFail();
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'id' => $conversation->id,
-                    'title' => $conversation->title,
+                    'title' => $conversation->title ?: 'Nueva conversación',
                     'created_at' => $conversation->created_at,
                     'last_message_at' => $conversation->last_message_at,
                     'messages' => $conversation->messages->map(function ($message) {
@@ -134,7 +157,7 @@ class ChatController extends Controller
                             'content' => $message->content,
                             'role' => $message->role,
                             'created_at' => $message->created_at,
-                            'weather_data_used' => isset($message->metadata['weather_data_used']),
+                            'weather_data_used' => $message->weather_data_used ?? false,
                         ];
                     })
                 ]
@@ -151,22 +174,22 @@ class ChatController extends Controller
 
     public function deleteConversation(Request $request, int $conversationId): JsonResponse
     {
-        $validator = Validator::make(array_merge($request->all(), ['conversation_id' => $conversationId]), [
-            'user_id' => 'required|exists:users,id',
+        $validator = Validator::make(['conversation_id' => $conversationId], [
             'conversation_id' => 'required|exists:conversations,id'
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Datos de entrada inválidos',
-                'errors' => $validator->errors()
-            ], 400);
+                'message' => 'Conversación no encontrada'
+            ], 404);
         }
 
         try {
+            $sessionUuid = $request->session_uuid;
+            
             $conversation = Conversation::where('id', $conversationId)
-                ->where('user_id', $request->user_id)
+                ->where('session_uuid', $sessionUuid)
                 ->firstOrFail();
 
             $conversation->delete();
@@ -185,137 +208,19 @@ class ChatController extends Controller
         }
     }
 
-    private function getOrCreateConversation(Request $request, User $user): Conversation
+    private function getOrCreateConversation(?int $conversationId, string $sessionUuid): Conversation
     {
-        if ($request->conversation_id) {
-            return Conversation::where('id', $request->conversation_id)
-                ->where('user_id', $user->id)
+        if ($conversationId) {
+            return Conversation::where('id', $conversationId)
+                ->where('session_uuid', $sessionUuid)
                 ->firstOrFail();
         }
 
         return Conversation::create([
-            'user_id' => $user->id,
+            'session_uuid' => $sessionUuid,
             'title' => null,
+            'last_message' => null,
             'last_message_at' => now()
         ]);
-    }
-
-    private function getWeatherDataIfNeeded(string $message): ?array
-    {
-        
-        $needsWeather = $this->llmService->needsWeatherData($message);
-        
-        if (!$needsWeather) {
-            return null;
-        }
-
-        $city = $this->llmService->extractCityFromMessage($message);
-        
-        if (!$city) {
-            return null;
-        }
-
-        try {
-            $weatherData = $this->weatherService->getCurrentWeather($city);
-            return $weatherData;
-        } catch (\Exception $e) {
-            $errorMessage = $this->translateWeatherError($e->getMessage(), $city);
-            Log::error('🌤️ Weather API failed for: ' . $city . ' - Error: ' . $e->getMessage() . ' - User message: ' . $errorMessage);
-            
-            throw new \Exception($errorMessage);
-        }
-    }
-
-    private function getConversationHistory(Conversation $conversation, int $limit = 10): array
-    {
-        return $conversation->messages()
-            ->latest()
-            ->limit($limit)
-            ->get()
-            ->reverse()
-            ->values()
-            ->map(function ($message) {
-                return [
-                    'role' => $message->role,
-                    'content' => $message->content
-                ];
-            })
-            ->toArray();
-    }
-
-    private function generateConversationTitle(string $firstMessage): string
-    {
-        $title = substr($firstMessage, 0, 50);
-        
-        if (strlen($firstMessage) > 50) {
-            $title .= '...';
-        }
-
-        return $title;
-    }
-
-    private function translateWeatherError(string $errorCode, string $city): string
-    {
-        $weatherError = WeatherErrorCode::tryFrom($errorCode);
-        
-        if ($weatherError) {
-            return $weatherError->getMessage($city);
-        }
-
-        return "Error desconocido del servicio meteorológico: {$errorCode}";
-    }
-
-    private function detectSuspiciousPatterns(string $message): bool
-    {
-        $highRiskPatterns = [
-            '/ignore\s+(all\s+)?previous\s+instructions?/i',
-            '/ignore\s+above/i',
-            '/forget\s+(everything|all)/i',
-            '/new\s+(instructions?|rules?):\s*/i',
-            '/system\s*:\s*/i',
-            '/assistant\s*:\s*/i',
-            '/user\s*:\s*/i',
-            '/role\s*:\s*(system|assistant|user)/i',
-            '/act\s+as\s+(if\s+)?(you\s+are\s+)?a?/i',
-            '/pretend\s+(you\s+are|to\s+be)/i',
-            '/you\s+are\s+now\s+a?/i',
-            '/from\s+now\s+on\s+you\s+(are|will)/i',
-            '/override\s+your\s+(instructions?|role|system)/i',
-            '/change\s+your\s+(role|personality|instructions?)/i',
-            '/disregard\s+(your\s+)?(previous\s+)?instructions?/i',
-            '/<\/?system>/i',
-            '/<\/?assistant>/i',
-            '/<\/?user>/i',
-            '/\[SYSTEM\]/i',
-            '/\[ASSISTANT\]/i',
-            '/\[USER\]/i',
-            '/END\s+SYSTEM/i',
-            '/BEGIN\s+SYSTEM/i',
-        ];
-
-        foreach ($highRiskPatterns as $pattern) {
-            if (preg_match($pattern, $message)) {
-                return true;
-            }
-        }
-
-        $suspiciousScore = 0;
-
-        if (preg_match_all('/(system|assistant|user)\s*:/i', $message) > 1) {
-            $suspiciousScore += 3;
-        }
-
-        $instructionWords = ['ignore', 'forget', 'override', 'change', 'pretend', 'act', 'role', 'system'];
-        foreach ($instructionWords as $word) {
-            if (stripos($message, $word) !== false) {
-                $suspiciousScore += 1;
-            }
-        }
-
-        if (strlen($message) > 500 && substr_count($message, '.') > 5) {
-            $suspiciousScore += 2;
-        }
-
-        return $suspiciousScore >= 4;
     }
 }

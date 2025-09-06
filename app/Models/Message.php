@@ -9,24 +9,19 @@ class Message extends Model
 {
     protected $fillable = [
         'conversation_id',
-        'user_id',
+        'session_uuid',
         'content',
         'role',
-        'metadata'
+        'weather_data_used'
     ];
 
     protected $casts = [
-        'metadata' => 'array'
+        'weather_data_used' => 'boolean'
     ];
 
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(Conversation::class);
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
     }
 
     public function isFromUser(): bool
@@ -37,5 +32,10 @@ class Message extends Model
     public function isFromAssistant(): bool
     {
         return $this->role === 'assistant';
+    }
+
+    public static function forSession(string $sessionUuid)
+    {
+        return static::where('session_uuid', $sessionUuid);
     }
 }

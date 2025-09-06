@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen bg-gray-100">
+  <div class="flex flex-col sm:flex-row h-screen bg-gray-100">
     <ToastNotification 
       :show="toast.show"
       :message="toast.message"
@@ -57,9 +57,7 @@ const hideToast = () => {
 // API methods
 const loadConversations = async () => {
   try {
-    const { data } = await axios.get('/api/conversations', {
-      params: { user_id: 1 }
-    })
+    const { data } = await axios.get('/api/conversations')
     if (data.success) {
       conversations.value = data.data
     }
@@ -70,9 +68,7 @@ const loadConversations = async () => {
 
 const loadConversation = async (conversationId) => {
   try {
-    const { data } = await axios.get(`/api/conversations/${conversationId}`, {
-      params: { user_id: 1 }
-    })
+    const { data } = await axios.get(`/api/conversations/${conversationId}`)
     if (data.success) {
       messages.value = data.data.messages
       await nextTick()
@@ -100,7 +96,6 @@ const sendMessage = async (messageText) => {
   try {
     const { data } = await axios.post('/api/chat', {
       message: messageText,
-      user_id: 1,
       conversation_id: currentConversation.value?.id
     })
 
@@ -143,9 +138,7 @@ const deleteCurrentConversation = async () => {
   if (!currentConversation.value) return
 
   try {
-    const { data } = await axios.delete(`/api/conversations/${currentConversation.value.id}`, {
-      params: { user_id: 1 }
-    })
+    const { data } = await axios.delete(`/api/conversations/${currentConversation.value.id}`)
 
     if (data.success) {
       currentConversation.value = null
@@ -184,20 +177,3 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.btn-primary {
-  @apply bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
-}
-
-.btn-secondary {
-  @apply bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors px-3 py-1;
-}
-
-.conversation-item {
-  @apply cursor-pointer p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors;
-}
-
-.conversation-item.active {
-  @apply bg-blue-50 border-blue-200;
-}
-</style>
