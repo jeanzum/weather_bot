@@ -20,7 +20,7 @@ class Message extends Model
 
     protected $casts = [
         'role' => MessageRole::class,
-        'weather_data_used' => 'array'
+        'weather_data_used' => 'boolean'
     ];
 
     public function conversation(): BelongsTo
